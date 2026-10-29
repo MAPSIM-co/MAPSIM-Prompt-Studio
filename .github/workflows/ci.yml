@@ -1,0 +1,119 @@
+name: Verify
+
+# The point of this workflow is the launcher itself: every job starts the project
+# through run.sh / run.ps1 exactly the way a first-time user does, so a broken
+# bootstrap fails CI even when the Python code is fine. No API key is used anywhere -
+# the suite is in-process and makes no provider calls.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  launcher:
+    name: One-command setup (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.10', '3.13']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Puts the interpreter on PATH so run.sh / run.ps1 find exactly this version,
+      # and caches the wheels per OS using the requirements.txt hash.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Build the environment and run the tests (macOS / Linux)
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x run.sh
+          ./run.sh --tests
+
+      - name: Build the environment and run the tests (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .\run.ps1 -Tests
+
+      - name: Start the server and fetch the page (macOS / Linux)
+        if: runner.os != 'Windows'
+        run: |
+          ./run.sh --port 8111 &
+          server_pid=$!
+          trap 'kill $server_pid 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8111/ -o page.html; then ready=1; break; fi
+            sleep 1
+          done
+          test "${ready:-0}" = "1" || { echo "the server never answered on 127.0.0.1:8111"; exit 1; }
+          grep -q "MAPSIM Prompt Studio" page.html
+          curl -fsS http://127.0.0.1:8111/models -o models.json
+          curl -fsS http://127.0.0.1:8111/static/style.css -o /dev/null
+          curl -fsS http://127.0.0.1:8111/static/script.js -o /dev/null
+          curl -fsS http://127.0.0.1:8111/static/images/mapsim-logo.jpeg -o /dev/null
+
+      - name: Start the server and fetch the page (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $server = Start-Process -FilePath ".venv\Scripts\python.exe" `
+              -ArgumentList '-m', 'uvicorn', 'prompt_compiler.app:app', '--host', '127.0.0.1', '--port', '8111' `
+              -NoNewWindow -PassThru
+          try {
+              $ready = $false
+              $page = ''
+              for ($attempt = 0; $attempt -lt 30; $attempt++) {
+                  Start-Sleep -Seconds 1
+                  try {
+                      $response = Invoke-WebRequest -Uri 'http://127.0.0.1:8111/' -UseBasicParsing -TimeoutSec 3
+                      if ($response.StatusCode -eq 200) { $page = $response.Content; $ready = $true; break }
+                  } catch { }
+              }
+              if (-not $ready) { throw 'the server never answered on 127.0.0.1:8111' }
+              if ($page -notmatch 'MAPSIM Prompt Studio') { throw 'the served page is missing the application title' }
+              foreach ($path in @('/models', '/static/style.css', '/static/script.js', '/static/images/mapsim-logo.jpeg')) {
+                  Invoke-WebRequest -Uri ("http://127.0.0.1:8111" + $path) -UseBasicParsing -TimeoutSec 5 | Out-Null
+              }
+          } finally {
+              Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
+          }
+
+  static:
+    name: Source checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Syntax-check the browser controller
+        run: node --check static/script.js
+
+      - name: Byte-compile every Python module
+        run: python -m compileall -q main.py prompt_compiler tests
+
+      - name: Fail when a secret or local data file is committed
+        run: |
+          test ! -e config.json || { echo "config.json must never be committed"; exit 1; }
+          test ! -e usage.json || { echo "usage.json must never be committed"; exit 1; }
+          test ! -e library.json || { echo "library.json must never be committed"; exit 1; }
+          # 32+ characters after "AIza" is the shape of a real Google key (39 total).
+          # A shorter floor would trip on the deliberately fake fixture in
+          # tests/test_http_api.py, which exists to prove masking works.
+          ! grep -rInE --exclude-dir=.git --exclude-dir=.venv --exclude-dir=__pycache__ "AIza[0-9A-Za-z_-]{32,}" . || { echo "an API key appears in the tree"; exit 1; }

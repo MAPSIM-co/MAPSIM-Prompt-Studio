@@ -1,0 +1,19 @@
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.tmp
+server_*.log
+.DS_Store
+.env
+.venv/
+.venv.broken/
+venv/
+venv.broken/
+config.local.json
+# Local secrets and personal data (keep sanitized example files only)
+config.json
+usage.json
+library.json
+# Maintainer-only release verification record: it names this machine's paths,
+# ports and private test evidence, so it is deliberately not published.
+docs/RELEASE_CHECKLIST.md

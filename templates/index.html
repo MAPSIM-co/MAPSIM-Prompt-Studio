@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" id="theme-color" content="#070b12">
+    <meta name="description" content="MAPSIM Prompt Studio — تبدیل دقیق درخواست فارسی به پرامپت حرفه‌ای برای ابزارهای هوش مصنوعی">
+    <title>MAPSIM Prompt Studio | استودیو مهندسی پرامپت</title>
+    <script>
+        // Applied before the first paint so switching themes never flashes white.
+        (function () {
+            var stored = null;
+            try { stored = localStorage.getItem('mapsim-theme'); } catch (error) { /* private mode */ }
+            var dark = stored ? stored === 'dark' : !window.matchMedia('(prefers-color-scheme: light)').matches;
+            document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        })();
+    </script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <a href="#persian-prompt" class="skip-link">پرش به ورودی پرامپت</a>
+    <div class="app-shell">
+
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-logo"><img src="/static/images/mapsim-logo.jpeg" alt="لوگوی MAPSIM"></div>
+                <div class="brand-text">
+                    <h1>MAPSIM <span>Prompt Studio</span></h1>
+                    <span class="brand-sub">استودیو مهندسی و بهینه‌سازی پرامپت</span>
+                </div>
+            </div>
+            <div class="topbar-meta">
+                <span class="live-pill"><span class="live-dot"></span> فضای کاری MAPSIM</span>
+                <span class="model-pill" id="active-model">—</span>
+                <button id="theme-toggle" class="btn btn-ghost btn-icon" type="button"
+                        aria-pressed="false" title="تغییر حالت روشن / تاریک">☾</button>
+                <button id="toggle-library" class="btn btn-ghost btn-small" type="button"
+                        aria-expanded="false" aria-controls="library-sidebar">کتابخانه</button>
+                <button id="toggle-sidebar" class="btn btn-ghost btn-small usage-trigger" type="button"
+                        aria-expanded="false" aria-controls="usage-sidebar">
+                    <span class="usage-trigger-title">مصرف توکن</span>
+                    <span class="usage-header-summary" aria-live="polite">
+                        <span id="usage-header-total" class="usage-header-total">— توکن</span>
+                        <span class="usage-header-separator">·</span>
+                        <span id="usage-header-requests" class="usage-header-requests">— درخواست</span>
+                    </span>
+                    <span class="usage-trigger-icon" aria-hidden="true">⌄</span>
+                </button>
+                <button id="manage-settings" class="btn btn-ghost btn-small" type="button">تنظیمات</button>
+            </div>
+        </header>
+
+        <div id="workspace" class="workspace">
+            <main class="main-col">
+
+                <section class="card input-card">
+                    <div class="card-head">
+                        <label class="section-label" for="persian-prompt">
+                            ورودی فارسی
+                            <small class="section-kicker">تبدیل درخواست به دستور اجرایی دقیق</small>
+                        </label>
+                        <div class="card-actions">
+                            <select id="model-select" class="model-select" aria-label="انتخاب مدل برای این درخواست"></select>
+                            <button id="translate-btn" class="btn btn-primary btn-sm" type="submit">تبدیل کن</button>
+                        </div>
+                    </div>
+                    <textarea id="persian-prompt" class="textarea"
+                              placeholder="هدف، زمینه، محدودیت‌ها و خروجی مورد انتظار را دقیق بنویسید…"
+                              aria-describedby="input-help"></textarea>
+                    <p id="input-help" class="lib-note">
+                        <span id="input-counter">۰ نویسه</span> · سقف <span id="input-limit">۲۰٬۰۰۰</span> · برای تبدیل: Ctrl/⌘ + Enter
+                    </p>
+                </section>
+
+                <section id="output-section" class="card output-card" aria-live="polite">
+                    <div class="card-head">
+                        <span class="section-label">خروجی مهندسی‌شده
+                            <small class="section-kicker">ساختاریافته، قابل ارزیابی و آماده استفاده</small>
+                        </span>
+                        <div class="result-badges">
+                            <span id="category-badge" class="cat-badge"></span>
+                            <span id="subcategory-badge" class="subcat-badge hidden"></span>
+                        </div>
+                    </div>
+
+                    <div class="lang-pair">
+                        <div class="lang-block lang-block-fa" dir="rtl">
+                            <div class="lang-head">
+                                <div class="lang-heading">
+                                    <h2 class="lang-title">بخش فارسی</h2>
+                                    <p class="lang-note">همه‌چیز به فارسی: پرامپت آماده و تحلیل درخواست</p>
+                                </div>
+                                <div class="lang-actions">
+                                    <button id="copy-persian-btn" class="btn btn-ghost btn-small" type="button">⧉ کپی بخش فارسی</button>
+                                </div>
+                            </div>
+                            <p id="purpose-fa" class="purpose"></p>
+
+                            <div class="result-box" id="persian-box">
+                                <div class="result-box-head">
+                                    <span class="result-box-label">پرامپت فارسی</span>
+                                    <button id="expand-persian-btn" class="btn btn-ghost btn-small" type="button"
+                                            aria-expanded="false" aria-controls="output-persian">بیشتر نمایش بده</button>
+                                </div>
+                                <pre id="output-persian" class="output output-persian" tabindex="0"></pre>
+                            </div>
+
+                            <div class="analysis-grid">
+                                <div class="analysis-card">
+                                    <div class="analysis-card-head">الزامات حفظ‌شده</div>
+                                    <div id="requirements-list-fa" class="analysis-card-body"></div>
+                                </div>
+                                <div class="analysis-card">
+                                    <div class="analysis-card-head">فرض‌ها</div>
+                                    <div id="assumptions-list-fa" class="analysis-card-body"></div>
+                                </div>
+                                <div class="analysis-card">
+                                    <div class="analysis-card-head">اطلاعات ازدست‌رفته</div>
+                                    <div id="missing-list-fa" class="analysis-card-body"></div>
+                                </div>
+                                <div class="analysis-card analysis-card-wide">
+                                    <div class="analysis-card-head">پیشنهادها</div>
+                                    <div id="suggestions-list-fa" class="analysis-card-body"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lang-block lang-block-en" dir="ltr">
+                            <div class="lang-head">
+                                <div class="lang-heading">
+                                    <h2 class="lang-title">English section</h2>
+                                    <p class="lang-note">The executable prompt and the analysis, all in English</p>
+                                </div>
+                                <div class="lang-actions">
+                                    <button id="copy-btn" class="btn btn-ghost btn-small" type="button">⧉ Copy English</button>
+                                </div>
+                            </div>
+                            <p id="purpose-en" class="purpose"></p>
+
+                            <div class="result-box" id="english-box">
+                                <div class="result-box-head">
+                                    <span class="result-box-label">English prompt</span>
+                                    <button id="expand-english-btn" class="btn btn-ghost btn-small" type="button"
+                                            aria-expanded="false" aria-controls="output">Expand</button>
+                                </div>
+                                <pre id="output" class="output output-english" tabindex="0"></pre>
+                            </div>
+
+                            <div class="analysis-grid">
+                                <div class="analysis-card">
+                                    <div class="analysis-card-head">Preserved requirements</div>
+                                    <div id="requirements-list" class="analysis-card-body"></div>
+                                </div>
+                                <div class="analysis-card">
+                                    <div class="analysis-card-head">Assumptions</div>
+                                    <div id="assumptions-list" class="analysis-card-body"></div>
+                                </div>
+                                <div class="analysis-card">
+                                    <div class="analysis-card-head">Missing information</div>
+                                    <div id="missing-list" class="analysis-card-body"></div>
+                                </div>
+                                <div class="analysis-card analysis-card-wide">
+                                    <div class="analysis-card-head">Suggestions</div>
+                                    <div id="suggestions-list" class="analysis-card-body"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="output-actions">
+                        <button id="save-to-library" class="btn btn-ghost btn-small" type="button">★ ذخیره در کتابخانه</button>
+                        <button id="copy-both" class="btn btn-ghost btn-small" type="button">⧉ کپی هر دو</button>
+                        <button id="clear-workspace" class="btn btn-ghost btn-small btn-danger" type="button">پاک کردن خروجی</button>
+                        <button id="use-in-claude" class="btn btn-ghost" type="button">استفاده در Claude Code</button>
+                        <button id="use-in-opencode" class="btn btn-ghost" type="button">استفاده در OpenCode</button>
+                    </div>
+                </section>
+
+            </main>
+
+            <aside id="usage-sidebar" class="drawer drawer-usage" role="region" aria-labelledby="usage-title" hidden>
+                <div class="drawer-header">
+                    <h3 id="usage-title"><span class="dot"></span> مصرف توکن</h3>
+                    <button id="close-sidebar" class="btn-close" type="button" aria-label="بستن پنل مصرف">&times;</button>
+                </div>
+                <div id="usage-content" class="drawer-body">
+                    <div class="usage-loading">در حال بارگذاری...</div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <div id="busy-overlay" class="busy" hidden>
+        <div class="busy-card">
+            <div class="busy-mark">
+                <span class="busy-ring" aria-hidden="true"></span>
+                <span class="busy-ring busy-ring-inner" aria-hidden="true"></span>
+                <img src="/static/images/mapsim-logo.jpeg" alt="" aria-hidden="true">
+            </div>
+            <p class="busy-wordmark">MAPSIM <span>Prompt Studio</span></p>
+            <h2 class="busy-title">در حال مهندسی پرامپت</h2>
+
+            <ol class="busy-steps" id="busy-steps">
+                <li class="is-active"><span class="busy-step-num">۱</span> خواندن درخواست</li>
+                <li><span class="busy-step-num">۲</span> ارسال به مدل</li>
+                <li><span class="busy-step-num">۳</span> ساخت پرامپت</li>
+                <li><span class="busy-step-num">۴</span> آماده‌سازی خروجی</li>
+            </ol>
+
+            <p class="busy-stage" id="busy-stage" role="status" aria-live="polite">درخواست شما خوانده می‌شود…</p>
+            <div class="busy-bar" aria-hidden="true"><span class="busy-bar-fill"></span></div>
+
+            <p class="busy-meta">
+                <span class="busy-chip" id="busy-elapsed" aria-hidden="true">۰ ثانیه</span>
+                <span class="busy-chip" id="busy-length" aria-hidden="true">۰ نویسه</span>
+                <span class="busy-chip busy-chip-model" id="busy-model" dir="ltr">—</span>
+            </p>
+            <p class="busy-hint">لطفاً صبر کنید؛ این صفحه را نبندید و دوباره «تبدیل کن» را نزنید.</p>
+        </div>
+    </div>
+
+    <div id="library-modal" class="modal modal-library" role="dialog" aria-labelledby="library-title" aria-modal="true" hidden>
+        <div id="library-sidebar" class="sheet">
+            <div class="sheet-head">
+                <div class="drawer-header">
+                    <h2 id="library-title"><span class="dot"></span> کتابخانه پرامپت</h2>
+                    <button id="close-library" class="btn-close" type="button" aria-label="بستن کتابخانه">&times;</button>
+                </div>
+                <input id="library-search" class="library-search" type="search"
+                       placeholder="جست‌وجو در درخواست‌ها و پرامپت‌ها…" aria-label="جست‌وجوی کتابخانه">
+                <div id="library-tags" class="tag-strip" aria-label="پالایش برچسب"></div>
+                <div class="library-filters">
+                    <label class="filter-check">
+                        <input type="checkbox" id="library-fav-only"> فقط علاقه‌مندی‌ها
+                    </label>
+                    <span id="library-count" aria-live="polite">—</span>
+                </div>
+            </div>
+            <div id="library-list" class="sheet-body library-list">
+                <div class="panel-empty">کتابخانه خالی است — بعد از هر تبدیل، دکمهٔ «ذخیره در کتابخانه» را بزنید.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="entry-modal" class="modal modal-entry" role="dialog" aria-labelledby="entry-dialog-title" aria-modal="true" hidden>
+        <div class="sheet sheet-entry">
+            <div class="sheet-head">
+                <div class="drawer-header">
+                    <div>
+                        <h2 id="entry-dialog-title"><span class="dot"></span> ویرایش مورد کتابخانه</h2>
+                        <p class="sheet-note">متن‌های بلند در کادرهای بزرگ این پنجره ویرایش می‌شوند؛ تحلیل‌ها دوباره محاسبه نمی‌شوند.</p>
+                    </div>
+                    <button id="close-entry" class="btn-close" type="button" aria-label="بستن ویرایش">&times;</button>
+                </div>
+            </div>
+
+            <div class="sheet-body entry-body">
+                <div class="entry-meta">
+                    <div class="entry-field">
+                        <label for="entry-title-input">عنوان</label>
+                        <input id="entry-title-input" type="text" maxlength="120"
+                               placeholder="یک عنوان کوتاه که بعداً پیدایتان کند">
+                    </div>
+                    <div class="entry-field">
+                        <label for="entry-tags-input">برچسب‌ها</label>
+                        <input id="entry-tags-input" type="text" placeholder="با کاما جدا کنید، مثلاً: ریسک، لاگر">
+                    </div>
+                </div>
+
+                <div class="entry-field">
+                    <label for="entry-input">درخواست اصلی (فارسی) — متن کامل شما</label>
+                    <textarea id="entry-input" class="textarea entry-textarea entry-textarea-main" dir="rtl"
+                              placeholder="هدف، زمینه، محدودیت‌ها و خروجی مورد انتظار…"></textarea>
+                    <p class="lib-note">
+                        <span id="entry-input-counter">۰ نویسه</span> · برای ذخیره: Ctrl/⌘ + Enter
+                    </p>
+                </div>
+
+                <div class="entry-prompts">
+                    <div class="entry-field">
+                        <label for="entry-persian-prompt">پرامپت فارسی</label>
+                        <textarea id="entry-persian-prompt" class="textarea entry-textarea" dir="rtl"
+                                  placeholder="بخش فارسی خروجی"></textarea>
+                    </div>
+                    <div class="entry-field">
+                        <label for="entry-english-prompt">پرامپت انگلیسی (English prompt)</label>
+                        <textarea id="entry-english-prompt" class="textarea entry-textarea entry-textarea-ltr" dir="ltr"
+                                  placeholder="The engineered English prompt"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="entry-foot">
+                <button id="save-entry-btn" class="btn btn-primary" type="button">ذخیره تغییرات</button>
+                <button id="cancel-entry-btn" class="btn btn-ghost" type="button">انصراف</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal" role="dialog" aria-labelledby="settings-title" aria-modal="true" hidden>
+        <div class="modal-content settings-content">
+            <div class="modal-header">
+                <div class="modal-heading">
+                    <h2 id="settings-title">تنظیمات</h2>
+                    <p class="modal-sub">کلید دسترسی، مدل پیش‌فرض و رفتار تبدیل پرامپت را از اینجا کنترل کنید.</p>
+                </div>
+                <button id="close-modal" class="btn-close" type="button" aria-label="بستن تنظیمات">&times;</button>
+            </div>
+            <form id="settings-form">
+                <section class="settings-block">
+                    <h3 class="block-title"><span class="block-num">۱</span> کلید دسترسی</h3>
+                    <div class="provider-section" id="gemini-section">
+                        <p class="note">
+                            سرویس‌دهندهٔ این برنامه <strong>Google AI Studio (Gemini)</strong> است.
+                            کلید را از نشانی
+                            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>
+                            بگیرید و اینجا وارد کنید.
+                        </p>
+                        <div class="form-group">
+                            <label for="api-key-input">کلید API (Gemini)</label>
+                            {% if config.api_key_source == "environment" %}
+                            <input id="api-key-input" type="password" name="gemini_api_key" placeholder="کلید از متغیر محیطی خوانده می‌شود" disabled>
+                            <p class="key-state">
+                                <span class="key-dot ok"></span>
+                                کلید فعال از متغیر محیطی (<span dir="ltr">{{ config.api_key_masked }}</span>) — این مقدار در فایل config.json ذخیره نمی‌شود.
+                            </p>
+                            {% else %}
+                            <input id="api-key-input" type="password" name="gemini_api_key" placeholder="{{ 'برای تغییر، کلید تازه را وارد کنید' if config.has_api_key else 'کلید Google AI Studio را وارد کنید' }}" autocomplete="off">
+                            <p class="key-state">
+                                {% if config.has_api_key %}
+                                <span class="key-dot ok"></span>
+                                کلید ذخیره‌شده: <span dir="ltr">{{ config.api_key_masked }}</span> — برای نگه‌داشتن، فیلد را خالی بگذارید.
+                                {% else %}
+                                <span class="key-dot off"></span>
+                                هنوز کلیدی تنظیم نشده است؛ تا این فیلد خالی است، دکمهٔ «تبدیل کن» خطای کلید می‌دهد.
+                                {% endif %}
+                                <label class="key-clear"><input type="checkbox" name="remove_api_key" value="__CLEAR__"> حذف کلید ذخیره‌شده</label>
+                            </p>
+                            {% endif %}
+                            <details class="field-help">
+                                <summary>این کلید کجا ذخیره می‌شود و چطور نگاهش کنم؟</summary>
+                                <ul>
+                                    <li>در فایل <span dir="ltr">config.json</span> کنار برنامه، فقط با دسترسی صاحب فایل (۶۰۰) نوشته می‌شود.</li>
+                                    <li>اگر متغیر محیطی <span dir="ltr">PROMPT_STUDIO_API_KEY</span> یا <span dir="ltr">GEMINI_API_KEY</span> تنظیم شده باشد، آن بر فایل می‌چربد و چیزی روی دیسک ذخیره نمی‌شود.</li>
+                                    <li>صفحه هیچ‌وقت خودِ کلید را نمایش نمی‌دهد؛ تنها چهار نویسهٔ آخر برای تشخیص نشان داده می‌شود.</li>
+                                    <li>این کلید را در اختیار کسی نگذارید و در اسکرین‌شات یا مخزن عمومی منتشر نکنید. اگر جایی فاش شد، در AI Studio کلید را revoke و یکی تازه بسازید.</li>
+                                </ul>
+                            </details>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="settings-block">
+                    <h3 class="block-title"><span class="block-num">۲</span> مدل پیش‌فرض</h3>
+                    <p class="note">
+                        این مدل، انتخاب اولیهٔ هر درخواست تازه است. در خود صفحهٔ تبدیل هم می‌توانید برای یک درخواست
+                        خاص مدل عوض کنید؛ آنچه اینجا انتخاب کنید برای درخواست‌های بعدی به‌کار می‌آید.
+                    </p>
+                    <div class="form-group">
+                        <label for="model-default">مدل مورد استفاده</label>
+                        <select id="model-default" name="gemini_model">
+                            <optgroup label="مدل‌های قابل استفاده در این برنامه (تولید متن)">
+                                {% for m in usable_models %}
+                                <option value="{{ m.id }}" {% if config.gemini_model == m.id %}selected{% endif %}>{{ m.name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="مدل‌هایی که در این برنامه قابل استفاده نیستند">
+                                {% for m in unusable_models %}
+                                <option value="{{ m.id }}" disabled>{{ m.name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                        </select>
+                        <div id="model-default-info" class="model-info" aria-live="polite">
+                            <p class="model-info-loading">برای دیدن جزئیات مدل، یکی را انتخاب کنید.</p>
+                        </div>
+                    </div>
+                    <details class="field-help">
+                        <summary>چطور بهترین مدل را انتخاب کنم؟</summary>
+                        <ul>
+                            <li><strong>سری Lite</strong> — ارزان‌ترین و سریع‌ترین. برای درخواست‌های کوتاه و تعداد بالای تبدیل. جزئیات ریز را ممکن است از دست بدهد.</li>
+                            <li><strong>سری Flash</strong> — تعادل کیفیت و هزینه؛ گزینهٔ پیشنهادی این برنامه برای بیشتر کارها.</li>
+                            <li><strong>سری Pro</strong> — دقیق‌ترین استدلال برای پرامپت‌های بلند و چندهدفه؛ کندتر و گران‌تر.</li>
+                            <li>اعداد نشان‌داده‌شده (RPM / TPM / RPD) سقف درخواست ثبت‌شده در این برنامه‌اند و سهمیهٔ پولی سرویس‌دهنده متفاوت است.</li>
+                            <li>هزینه‌ها در این رابط به‌صورت سطح نسبی بیان شده‌اند؛ قیمت دقیق هر مدل را در
+                                <a href="https://ai.google.dev/gemini-api/docs/pricing" target="_blank" rel="noopener">صفحهٔ رسمی قیمت Google</a>
+                                ببینید.</li>
+                        </ul>
+                    </details>
+                </section>
+
+                <section class="settings-block">
+                    <h3 class="block-title"><span class="block-num">۳</span> سیستم پرامپت اختصاصی (اختیاری)</h3>
+                    <div class="form-group">
+                        <label for="system-prompt-override">دستور پایه‌ای که پیش از درخواست شما به مدل داده می‌شود</label>
+                        <textarea id="system-prompt-override" name="system_prompt_override" rows="6"
+                                  placeholder="خالی بگذارید تا دستور پیش‌فرض خود برنامه استفاده شود."
+                                  aria-describedby="system-help">{{ config.system_prompt_override }}</textarea>
+                        <div class="field-tools">
+                            <button id="system-sample-btn" class="btn btn-ghost btn-small" type="button">درج نمونهٔ آماده</button>
+                            <button id="system-reset-btn" class="btn btn-ghost btn-small btn-danger" type="button">خالی کردن (بازگشت به پیش‌فرض)</button>
+                        </div>
+                        <div id="system-help" class="field-help-block">
+                            <p>
+                                <strong>این بخش چیست؟</strong>
+                                «پرامپت سیستم» قواعد بازی را تعیین می‌کند: به مدل می‌گوید چه نقشی داشته باشد،
+                                خروجی را چطور بسازد و چه کارهایی ممنوع است. این دستور پیش از درخواست شما به
+                                سرویس Google فرستاده می‌شود و روی <strong>همهٔ تبدیل‌ها</strong> اثر دارد تا وقتی
+                                تغییرش بدهید.
+                            </p>
+                            <p>
+                                <strong>اگر خالی بگذارید چه می‌شود؟</strong>
+                                دستور پیش‌فرض خود برنامه استفاده می‌شود: همان متنی که درخواست را به پرامپت
+                                انگلیسی ساختاریافته تبدیل می‌کند، اجازه نمی‌دهد فناوری یا شرطی از خودشان اضافه
+                                شود، و پاسخ را در قالب JSON برمی‌گرداند تا این صفحه بتواند آن را بخش‌بخش نمایش دهد.
+                            </p>
+                            <p>
+                                <strong>چه چیزی بنویسم که کاربردی باشد؟</strong>
+                                فقط چیزی را عوض کنید که واقعاً می‌خواهید رفتار مدل تغییر کند. چهار الگوی پرکاربرد:
+                            </p>
+                            <ul>
+                                <li><strong>لحن و زبان خروجی:</strong> «پرامپت انگلیسی را کوتاه، دستورالعملی و بدون توضیح اضافه بنویس.»</li>
+                                <li><strong>ساختار ثابت:</strong> «خروجی را در این بخش‌ها بده: Context، Task، Constraints، Acceptance Criteria.»</li>
+                                <li><strong>محدودیت همیشگی:</strong> «هر فایل، کتابخانه یا فناوری که کاربر نام نبرده اضافه نکن.»</li>
+                                <li><strong>مخاطب خاص:</strong> «پرامپت را برای یک ربات کدنویس بنویس که فقط به یک ماژول دسترسی دارد.»</li>
+                            </ul>
+                            <p class="field-warning">
+                                <strong>هشدار:</strong>
+                                متن شما جایگزین کامل دستور پیش‌فرض می‌شود، نه متن کمکی کنار آن. اگر قواعد ساختار
+                                خروجی (کلیدهای JSON) را بردارید، این صفحه نمی‌تواند پاسخ مدل را بخواند و خروجی
+                                ناقص یا بی‌معنی می‌شود. اگر مطمئن نیستید، خالی بگذارید یا دکمهٔ «درج نمونهٔ آماده»
+                                را بزنید و فقط همان چند خط را عوض کنید.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <button type="submit" class="btn btn-primary btn-full">ذخیره تنظیمات</button>
+                <p id="save-status" class="save-status" role="status" aria-live="polite"></p>
+            </form>
+        </div>
+    </div>
+
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <footer class="mapsim-footer">
+        <span>MAPSIM PROMPT STUDIO</span>
+        <span>ساخته‌شده برای گردش‌کار حرفه‌ای شما</span>
+        <a href="/docs" target="_blank" rel="noopener">راهنمای API</a>
+    </footer>
+    <script>window.DEFAULT_MODEL = "{{ config.gemini_model }}";</script>
+    <script src="/static/script.js"></script>
+</body>
+</html>

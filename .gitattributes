@@ -1,0 +1,17 @@
+# Line endings are a functional concern here, not cosmetics: cmd.exe mis-parses a
+# batch file that was checked out with LF, and a shell script saved with CRLF fails
+# with "bad interpreter: /usr/bin/env bash^M".
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary -diff
+*.ttf binary
