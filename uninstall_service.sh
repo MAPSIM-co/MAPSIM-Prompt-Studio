@@ -1,18 +1,48 @@
+
 #!/usr/bin/env bash
-# Remove the systemd service unit. Project files, .venv, config, library and usage data are kept.
-set -euo pipefail
+# Remove the MAPSIM Prompt Studio systemd service.
+# Project files, .venv, configuration, library and usage data are preserved.
+set -Eeuo pipefail
+
 SERVICE_NAME="mapsim-prompt-studio"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
-if [[ "$(uname -s)" != Linux ]] || ! command -v systemctl >/dev/null 2>&1; then
-  echo "This script requires Linux with systemd." >&2
+
+if [[ "$(uname -s)" != Linux ]]; then
+  echo "This script requires Linux." >&2
   exit 1
 fi
-if [[ "${EUID}" -eq 0 ]]; then
-  echo "Run as the normal project owner, without sudo." >&2
+
+if [[ "${EUID}" -ne 0 ]]; then
+  echo "Run this script as root." >&2
+  echo "Example: sudo ./uninstall_service.sh" >&2
   exit 1
 fi
-sudo systemctl disable --now "$SERVICE_NAME" 2>/dev/null || true
-sudo rm -f "$SERVICE_FILE"
-sudo systemctl daemon-reload
-sudo systemctl reset-failed "$SERVICE_NAME" 2>/dev/null || true
-echo "Service removed. Project files and local data were not deleted."
+
+if ! command -v systemctl >/dev/null 2>&1 ||
+   ! systemctl --version >/dev/null 2>&1; then
+  echo "systemd was not detected." >&2
+  exit 1
+fi
+
+echo "Stopping and disabling MAPSIM Prompt Studio..."
+
+systemctl disable --now "$SERVICE_NAME" 2>/dev/null || true
+
+if [[ -f "$SERVICE_FILE" ]]; then
+  rm -f "$SERVICE_FILE"
+fi
+
+systemctl daemon-reload
+systemctl reset-failed "$SERVICE_NAME" 2>/dev/null || true
+
+echo
+echo "MAPSIM Prompt Studio service has been removed."
+echo
+echo "Preserved:"
+echo "  - Project source files"
+echo "  - Python virtual environment (.venv)"
+echo "  - config.json"
+echo "  - library.json"
+echo "  - usage.json"
+echo
+echo "No project files or application data were deleted."
