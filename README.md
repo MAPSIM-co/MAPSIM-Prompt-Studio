@@ -131,8 +131,6 @@ chmod +x run.sh
 ./run.sh
 ```
 
-Replace `<repository-url>` with the actual URL of the Git repository.
-
 If you downloaded and extracted a ZIP archive, open a terminal in the extracted project directory and run:
 
 ```bash
@@ -592,8 +590,6 @@ cd MAPSIM-Prompt-Studio
 chmod +x run.sh
 ./run.sh
 ```
-
-به‌جای `<repository-url>` نشانی واقعی مخزن GitHub خود را قرار دهید.
 
 اگر فایل ZIP را دانلود کرده‌اید، آن را استخراج کنید، ترمینال را در پوشه اصلی پروژه باز کنید و اجرا کنید:
 
