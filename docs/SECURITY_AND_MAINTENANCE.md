@@ -27,4 +27,11 @@ Dependencies are pinned in `requirements.txt`: FastAPI, uvicorn, Jinja2, python-
 Usage history is pruned to the last seven days on write. The library keeps the 500 most recent entries and drops the oldest. Back up only what is needed, remove old records according to your retention needs, and do not share logs or `library.json` without reviewing their contents.
 
 ## Brand and third-party notices
-MAPSIM branding identifies this customized distribution. The underlying Google Gemini API remains a third-party service. Retain all applicable upstream licenses and notices for dependencies and bundled assets. This application's own source is MIT-licensed through the `LICENSE` file at the repository root; that grant covers the code only — it does not license the MAPSIM name or logo beyond identifying this distribution, and it does not change anything about the Google service you call with your own key.
+MAPSIM branding identifies this customized distribution. The underlying Google Gemini API remains a third-party service. Retain all applicable upstream licenses and notices for dependencies and bundled assets.
+
+
+## Public repository release hygiene
+
+Do not track `config.json`, `usage.json`, `library.json`, `.env`, virtual environments, logs, or local cache files. The checked-in `config.example.json` must contain an empty API key. If a credential appears in a ZIP, commit, issue, or log, revoke it at the provider immediately and review usage. If it was committed, remove it from Git history too; a normal follow-up deletion is not enough.
+
+The project currently has no top-level `LICENSE`. Do not infer a license from public repository visibility. The owner must select a license before granting reuse rights or soliciting contributions. See `SECURITY.md` and `docs/PUBLIC_REPOSITORY_READINESS.md`.

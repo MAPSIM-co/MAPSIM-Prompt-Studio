@@ -27,7 +27,7 @@ from prompt_compiler.services import usage as usage_service
 from prompt_compiler.app import app
 
 
-SECRET = "AIzaFAKE-NEVER-RENDERED-0123456789"
+SECRET = "FAKE-NEVER-RENDERED-0123456789"
 TEMP = pathlib.Path(tempfile.mkdtemp(prefix="ps_http_tests_"))
 client = TestClient(app)
 

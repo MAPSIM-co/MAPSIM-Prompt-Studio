@@ -30,6 +30,7 @@ PYTHON_BIN="${PROMPT_STUDIO_PYTHON:-}"
 RELOAD=0
 RUN_TESTS=0
 OPEN_BROWSER=0
+PREPARE_ONLY=0
 
 say() { printf '%b\n' "$*"; }
 step() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
@@ -45,6 +46,7 @@ Usage: ./run.sh [options]
   --reload         restart the server when a source file changes
   --open           open the app in the default browser once it is up
   --tests          install dependencies and run the test suite, then exit
+  --prepare-only   create .venv/install dependencies, then exit
   -h, --help       show this help
 
 The server reads the API key from PROMPT_STUDIO_API_KEY / GEMINI_API_KEY when the
@@ -60,6 +62,7 @@ while [ "$#" -gt 0 ]; do
         --reload) RELOAD=1; shift ;;
         --open) OPEN_BROWSER=1; shift ;;
         --tests) RUN_TESTS=1; shift ;;
+        --prepare-only) PREPARE_ONLY=1; shift ;;
         -h|--help) usage; exit 0 ;;
         *) fail "Unknown option: $1  (run ./run.sh --help)" ;;
     esac
@@ -149,6 +152,12 @@ else
     say "    already satisfied (requirements.txt unchanged)"
 fi
 
+if [ "$PREPARE_ONLY" = 1 ]; then
+    step "Setup complete"
+    say "    Environment ready at $SCRIPT_DIR/$VENV_DIR"
+    exit 0
+fi
+
 if [ "$RUN_TESTS" = 1 ]; then
     step "Running the test suite"
     exec "$VENV_PY" -m unittest discover -s tests -v
@@ -192,7 +201,7 @@ if [ -z "${PROMPT_STUDIO_API_KEY:-}${GEMINI_API_KEY:-}" ] && [ ! -f config.json 
 fi
 
 URL="http://$HOST:$PORT"
-CMD=("$VENV_PY" -m uvicorn "prompt_compiler.app:app" --host "$HOST" --port "$PORT")
+CMD=("$VENV_PY" -m uvicorn "prompt_compiler.app:app" --host "$HOST" --port "$PORT" --no-access-log)
 [ "$RELOAD" = 1 ] && CMD+=(--reload)
 
 step "Starting MAPSIM Prompt Studio"
